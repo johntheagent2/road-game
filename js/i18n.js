@@ -6,7 +6,7 @@
     vi: {
       app_title: 'Fairfield Road',
       btn_questions: 'Câu hỏi & ô', btn_newgame: 'Ván mới', btn_fullscreen: 'Toàn màn hình',
-      setup_title: 'Thiết lập đội chơi', setup_hint: 'Từ 2 đến 6 đội. Mỗi đội chọn tên, màu và xe.',
+      setup_title: 'Thiết lập đội chơi', setup_hint: 'Từ 2 đến 6 đội. Mỗi đội chọn tên, màu và nhân vật.',
       team_name: 'Tên đội', add_team: '+ Thêm đội', remove: 'Xóa',
       shuffle_order: 'Xáo trộn thứ tự chơi', timer_on: 'Bật đồng hồ trả lời', seconds: 'giây',
       start_game: 'Bắt đầu chơi', resume_hint: 'Có ván đang chơi dở — đã tự khôi phục.',
@@ -68,7 +68,7 @@
     en: {
       app_title: 'Fairfield Road',
       btn_questions: 'Questions & tiles', btn_newgame: 'New game', btn_fullscreen: 'Fullscreen',
-      setup_title: 'Team setup', setup_hint: '2 to 6 teams. Pick a name, colour and vehicle for each.',
+      setup_title: 'Team setup', setup_hint: '2 to 6 teams. Pick a name, colour and farmer for each.',
       team_name: 'Team name', add_team: '+ Add team', remove: 'Remove',
       shuffle_order: 'Shuffle turn order', timer_on: 'Enable answer timer', seconds: 'sec',
       start_game: 'Start game', resume_hint: 'A game in progress was restored.',

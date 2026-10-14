@@ -1,0 +1,66 @@
+# TASK
+Convert the attached CSV question file into a single JSON file for the "Fairfield Road" board game. Output ONLY valid JSON (no markdown fences, no commentary), ready to save as `fairfield-questions.json`.
+
+# INPUT
+A CSV file with one question per row. Column names may vary (e.g. "Question", "Câu hỏi", "A/B/C/D", "Answer", "Đáp án", "Type", "Tiebreak"). First inspect the header and map columns to the fields below. If a mapping is ambiguous, state your assumption in one line BEFORE the JSON.
+
+# OUTPUT FILE STRUCTURE
+```json
+{
+  "questions": [ <Question>, ... ],
+  "tiebreakQuestions": [ <Question>, ... ]
+}
+```
+- `questions`: the main pool, drawn when a team lands on a question tile.
+- `tiebreakQuestions`: the tiebreaker pool. Fill it only from rows that are marked as tiebreak (a column such as "tiebreak"/"phụ"/"type", or a section in the file). If none are marked, output `[]`.
+- Do NOT output a `layout` key.
+
+# <Question> OBJECT
+| Field | Type | Required | Rule |
+|---|---|---|---|
+| `q` | string OR `{"vi": string, "en": string}` | yes | The question text. Use the object form only when the CSV has BOTH Vietnamese and English; otherwise a plain string in the CSV's language. |
+| `a` | string OR `{"vi","en"}` | recommended | The correct answer as display text. Same string/object rule as `q`. |
+| `choices` | array of strings | only for multiple-choice | Options in original order, WITHOUT the "A.", "B)", "1." prefixes. Non-empty. |
+| `answer` | integer | required if `choices` exists | **0-based** index of the correct option inside `choices` (A=0, B=1, C=2, D=3). Must be < `choices.length`. |
+| `timeLimit` | integer (seconds) | optional | Include only if the CSV has a time column; must be >= 5. |
+
+## Rules
+1. **Open questions** (no options in the CSV): omit `choices` and `answer`; set `a` to the answer text.
+2. **Multiple-choice**: include `choices`, `answer`, and `a` equal to the text of the correct choice.
+3. If the CSV gives the correct answer as a letter ("B") or number ("2"), convert it to the 0-based index. If it gives the answer as text, find the matching choice and use its index.
+4. Preserve the original wording and diacritics exactly (UTF-8, no ASCII-folding). Only trim whitespace and fix obvious CSV artifacts (stray quotes, doubled spaces).
+5. Do not invent, translate, or "improve" questions or answers. Do not add fields other than those in the table.
+6. Skip empty rows and duplicate questions. Do not renumber or add ids.
+7. If a row is invalid (missing question, missing or unmatched correct answer, `answer` out of range), do NOT guess. Leave it out of the JSON and list it after the JSON, as described below.
+
+# EXAMPLE
+CSV:
+```
+Question,A,B,C,D,Correct,Tiebreak
+Thủ đô của Việt Nam là gì?,Hà Nội,Huế,Đà Nẵng,Cần Thơ,A,
+2 + 2 = ?,3,4,5,6,B,yes
+Ai viết Truyện Kiều?,,,,,Nguyễn Du,
+```
+Output:
+```json
+{
+  "questions": [
+    { "q": "Thủ đô của Việt Nam là gì?", "a": "Hà Nội", "choices": ["Hà Nội", "Huế", "Đà Nẵng", "Cần Thơ"], "answer": 0 },
+    { "q": "Ai viết Truyện Kiều?", "a": "Nguyễn Du" }
+  ],
+  "tiebreakQuestions": [
+    { "q": "2 + 2 = ?", "a": "4", "choices": ["3", "4", "5", "6"], "answer": 1 }
+  ]
+}
+```
+
+# SELF-CHECK BEFORE ANSWERING
+- The JSON parses with no trailing commas.
+- Every `answer` is an integer within `0..choices.length-1`, and `choices[answer]` matches `a`.
+- Every question has `q`.
+- Row count: rows in CSV = questions + tiebreakQuestions + skipped rows.
+
+# RESPONSE FORMAT
+1. (Only if needed) one line with column-mapping assumptions.
+2. The JSON.
+3. After the JSON, a short "Skipped rows" list (row number + reason), or "None".

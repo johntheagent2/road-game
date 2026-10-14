@@ -4,7 +4,7 @@
 
   var I = root.I18N, t = I.t, Engine = root.FFEngine, Store = root.Store, cfg = root.GAME_CONFIG;
   var FACES = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
-  var ICONS = ['🚗', '🚌', '🏍️', '🚲', '🚓', '🚕', '🛵', '🚙'];
+  var ICONS = ['🧑‍🌾', '👨‍🌾', '👩‍🌾', '👨🏽‍🌾', '👩🏻‍🌾', '🧑🏾‍🌾', '👨🏻‍🌾', '👩🏿‍🌾'];
   var COLORS = ['#ef4444', '#3b82f6', '#16a34a', '#f59e0b', '#a855f7', '#0891b2'];
   var MIN_TEAMS = 2, MAX_TEAMS = 6;
 
@@ -39,6 +39,8 @@ layout = layout.map(function (x) { return Engine.TILE_TYPES.indexOf(x) >= 0 ? x 
     setup.teams = [];
     for (var k = 0; k < 3; k++) setup.teams.push({ name: '', icon: ICONS[k], color: COLORS[k] });
   }
+  // saved setups from before the farmer icons still hold vehicle emoji
+  setup.teams.forEach(function (tm, i) { if (ICONS.indexOf(tm.icon) < 0) tm.icon = ICONS[i % ICONS.length]; });
 
   var busy = false, editorOpen = false, shownKey = null, timerHandle = null, boardBuilt = false;
 
