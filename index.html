@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fairfield Road</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>🚗 Fairfield Road</h1>
+    <div class="spacer"></div>
+    <button id="btn-questions" class="ghost" data-i18n="btn_questions"></button>
+    <button id="btn-newgame" class="ghost" data-i18n="btn_newgame"></button>
+    <button id="btn-fullscreen" class="ghost" data-i18n="btn_fullscreen"></button>
+    <div class="lang" role="group" aria-label="Language">
+      <button id="lang-vi" data-lang="vi">VI</button><button id="lang-en" data-lang="en">EN</button>
+    </div>
+  </header>
+
+  <!-- Setup screen -->
+  <main id="screen-setup" class="screen">
+    <section class="card setup">
+      <h2 data-i18n="setup_title"></h2>
+      <p class="muted" data-i18n="setup_hint"></p>
+      <div id="team-list"></div>
+      <div class="row">
+        <button id="btn-add-team" class="ghost" data-i18n="add_team"></button>
+      </div>
+      <div class="row options">
+        <label><input type="checkbox" id="opt-shuffle"> <span data-i18n="shuffle_order"></span></label>
+        <label><input type="checkbox" id="opt-timer"> <span data-i18n="timer_on"></span></label>
+        <label><input type="number" id="opt-seconds" min="5" max="600" value="30"> <span data-i18n="seconds"></span></label>
+      </div>
+      <button id="btn-start" class="primary big" data-i18n="start_game"></button>
+    </section>
+  </main>
+
+  <!-- Game screen -->
+  <main id="screen-game" class="screen hidden">
+    <div class="game-layout">
+      <div class="board-wrap"><svg id="board" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet"></svg></div>
+      <aside class="side">
+        <section class="card turn">
+          <div class="muted small" data-i18n="turn_of"></div>
+          <div id="turn-banner" class="turn-banner"></div>
+          <div class="dice-row">
+            <div id="dice" class="dice" aria-live="polite">⚀</div>
+            <button id="btn-roll" class="primary big" data-i18n="roll"></button>
+          </div>
+          <p id="hint" class="hint"></p>
+        </section>
+        <section class="card">
+          <h3 data-i18n="teams"></h3>
+          <ul id="scoreboard" class="scoreboard"></ul>
+        </section>
+        <section class="card log-card">
+          <h3 data-i18n="log"></h3>
+          <ol id="log" class="log"></ol>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true"><div id="modal-body" class="modal-body"></div></div>
+  <div id="toast" class="toast hidden"></div>
+  <input type="file" id="file-import" accept=".json,application/json" class="hidden">
+
+  <script src="config/game-config.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/board.js"></script>
+  <script src="js/editor.js"></script>
+  <script src="js/ui.js"></script>
+</body>
+</html>
