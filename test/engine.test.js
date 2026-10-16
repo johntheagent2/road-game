@@ -143,35 +143,18 @@ test('choose5 offers next five tiles only', () => {
   assert.strictEqual(e.s.current, 1);
 });
 
-test('reaching or passing Finish wins, then tie-break decides 2nd', () => {
+test('first home takes 1st and leaves the race; second home ends the game', () => {
   const e = make();
   e.s.teams[0].pos = 23; e.s.teams[1].pos = 5; e.s.teams[2].pos = 9;
   e.roll(6);
   assert.strictEqual(pos(e, 0), 25);
   assert.strictEqual(e.s.winner, 0);
-  assert.strictEqual(e.s.phase, 'tiebreak');
-  assert.strictEqual(e.tiebreakTeam().name, 'B');
-  e.answer(false);                          // B wrong
-  assert.strictEqual(e.tiebreakTeam().name, 'C');
-  e.answer(true);                           // C correct
-  assert.strictEqual(e.s.phase, 'results');
-  assert.strictEqual(e.s.second, 2);
-});
-
-test('empty tie-break pool reuses the normal questions', () => {
-  const e = make();
-  e.setBank({ tiebreak: [] });
-  e.s.teams[0].pos = 23; e.s.teams[1].pos = 5; e.s.teams[2].pos = 9;
-  e.roll(6);
-  assert.strictEqual(e.s.phase, 'tiebreak');
-  assert.ok(cfg.questions.some(q => JSON.stringify(q) === JSON.stringify(e.s.question)));
-});
-
-test('tie-break with no correct answer: furthest team gets 2nd', () => {
-  const e = make();
-  e.s.teams[0].pos = 24; e.s.teams[1].pos = 5; e.s.teams[2].pos = 9;
+  assert.strictEqual(e.s.phase, 'awaitRoll');
+  assert.strictEqual(e.team().name, 'B');
+  e.roll(1); e.resolveTile(); e.answer(true);
+  assert.strictEqual(e.team().name, 'C');       // A is skipped from now on
+  e.s.teams[2].pos = 24;
   e.roll(1);
-  e.answer(false); e.answer(false);
   assert.strictEqual(e.s.phase, 'results');
   assert.strictEqual(e.s.second, 2);
 });

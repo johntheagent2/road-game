@@ -160,13 +160,15 @@ layout = layout.map(function (x) { return Engine.TILE_TYPES.indexOf(x) >= 0 ? x 
     if (!editorOpen) { $('modal').classList.add('hidden'); $('modal-body').innerHTML = ''; }
   }
 
+  function finishers() { return (engine.s.winner != null ? 1 : 0) + (engine.s.second != null ? 1 : 0); }
+
   async function act(fn) {
     if (busy) return;
     busy = true;
     try {
-      var hadWinner = engine.s.winner != null;
+      var homeBefore = finishers();
       fn();
-      if (!hadWinner && engine.s.winner != null) Sound.play('finish');
+      if (finishers() > homeBefore) Sound.play('finish');
       await board.play(engine.takeAnim());
     } finally { busy = false; }
     render();
@@ -181,10 +183,11 @@ layout = layout.map(function (x) { return Engine.TILE_TYPES.indexOf(x) >= 0 ? x 
     dice.classList.add('rolling');
     for (var i = 0; i < 14; i++) { setDice(1 + Math.floor(Math.random() * 6)); await wait(90); }
     dice.classList.remove('rolling');
+    var homeBefore = finishers();
     var v = engine.roll();
     setDice(v);
     dice.classList.add('settle');
-    if (engine.s.winner != null) Sound.play('finish');
+    if (finishers() > homeBefore) Sound.play('finish');
     await wait(350);
     try { await board.play(engine.takeAnim()); } finally { busy = false; }
     render();
@@ -223,19 +226,19 @@ layout = layout.map(function (x) { return Engine.TILE_TYPES.indexOf(x) >= 0 ? x 
     board.setHighlights(s.phase === 'awaitTile' ? 'click' : s.phase === 'choose' ? 'choose' : null, s.tile, s.options || []);
 
     // banner
-    var cur = s.phase === 'tiebreak' ? engine.tiebreakTeam() : s.phase === 'results' ? engine.teamById(s.winner) : engine.team();
+    var cur = s.phase === 'results' ? engine.teamById(s.second != null ? s.second : s.winner) : engine.team();
     $('turn-banner').innerHTML = '<span class="chip" style="background:' + esc(cur.color) + '">' + esc(cur.icon) + '</span>' + esc(cur.name);
 
     // dice + hint
     if (s.lastRoll) setDice(s.lastRoll);
     $('btn-roll').disabled = busy || s.phase !== 'awaitRoll';
-    var hints = { awaitRoll: 'hint_roll', awaitTile: 'hint_tile', choose: 'hint_choose', question: 'hint_question', tiebreak: 'hint_tiebreak', results: 'hint_results' };
+    var hints = { awaitRoll: 'hint_roll', awaitTile: 'hint_tile', choose: 'hint_choose', question: 'hint_question', results: 'hint_results' };
     $('hint').textContent = t(hints[s.phase] || 'hint_roll');
 
     // scoreboard
     $('scoreboard').innerHTML = s.teams.map(function (tm) {
       var where = tm.pos === 0 ? t('at_start') : tm.pos >= engine.finish ? t('at_finish') : t('tile_n', { n: tm.pos });
-      var active = (s.phase !== 'results' && s.phase !== 'tiebreak' && tm.id === cur.id) ? ' active' : '';
+      var active = (s.phase !== 'results' && tm.id === cur.id) ? ' active' : '';
       return '<li class="' + active + '"><span class="chip" style="background:' + esc(tm.color) + '">' + esc(tm.icon) + '</span>' +
         '<span>' + esc(tm.name) + '</span><span class="where">' + esc(where) + '</span></li>';
     }).join('');
@@ -255,25 +258,23 @@ layout = layout.map(function (x) { return Engine.TILE_TYPES.indexOf(x) >= 0 ? x 
     if (editorOpen) return;
     var s = engine.s, key;
     if (s.phase === 'question') key = 'q|' + s.current + '|' + JSON.stringify(s.question) + '|' + s.log.length;
-    else if (s.phase === 'tiebreak') key = 'tb|' + s.tb.idx + '|' + JSON.stringify(s.question);
     else if (s.phase === 'results') key = 'res';
     else { shownKey = null; closeGameModal(); return; }
     if (key === shownKey) return;
     shownKey = key;
-    if (s.phase === 'results') resultsModal(); else questionModal(s.phase === 'tiebreak');
+    if (s.phase === 'results') resultsModal(); else questionModal();
   }
 
   /* ---------- question pop-up ---------- */
 
   function stopTimer() { if (timerHandle) { clearInterval(timerHandle); timerHandle = null; } }
 
-  function questionModal(isTie) {
+  function questionModal() {
     var s = engine.s, q = s.question;
-    var team = isTie ? engine.tiebreakTeam() : engine.team();
+    var team = engine.team();
     var body = $('modal-body');
     body.className = 'modal-body';
-    var h = '<h2>' + esc(t(isTie ? 'tiebreak_for' : 'question_for', { name: team.name })) + '</h2>';
-    if (isTie && s.tb.idx === 0) h += '<p class="muted">' + esc(t('tiebreak_intro', { name: engine.teamById(s.winner).name })) + '</p>';
+    var h = '<h2>' + esc(t('question_for', { name: team.name })) + '</h2>';
 
     var limit = q.timeLimit || (s.settings.timerEnabled ? s.settings.timerSeconds : 0);
     if (limit) h += '<div class="timer-label" id="timer-label"></div><div class="timer" id="timer"><div style="width:100%"></div></div>';
@@ -350,10 +351,11 @@ layout = layout.map(function (x) { return Engine.TILE_TYPES.indexOf(x) >= 0 ? x 
     body.className = 'modal-body rank';
     var ranked = [engine.teamById(s.winner)];
     if (s.second != null) ranked.push(engine.teamById(s.second));
-    ranked = ranked.concat(s.teams.filter(function (tm) { return tm.id !== s.winner && tm.id !== s.second; })
-      .sort(function (x, y) { return y.pos - x.pos; }));
+    var rest = s.teams.filter(function (tm) { return tm.id !== s.winner && tm.id !== s.second; })
+      .sort(function (x, y) { return y.pos - x.pos; });
     // podium order: 2nd | 1st | 3rd | 4th ...
-    var order = ranked.map(function (tm, i) { return { tm: tm, rank: i + 1 }; });
+    var order = ranked.map(function (tm, i) { return { tm: tm, rank: i + 1 }; })
+      .concat(rest.map(function (tm) { return { tm: tm, rank: 3 }; })); // everyone else shares 3rd
     if (order.length >= 2) order.splice(1, 0, order.shift());
     var cls = ['', 'first', 'second', 'third'];
     var h = '<div class="rank-title"><h2>' + esc(t('results_title')) + '</h2></div><div class="rank-cards">';

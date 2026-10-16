@@ -3,7 +3,7 @@
  * Works in the browser (window.FFEngine) and in Node (module.exports) for tests.
  *
  * Phases: setup -> awaitRoll -> awaitTile -> (question | choose) -> awaitRoll ...
- *         -> tiebreak -> results
+ *         -> results (1st home leaves the race; 2nd home ends the game)
  */
 (function (root) {
   'use strict';
@@ -72,7 +72,6 @@
       tile: null,
       options: [],
       question: null,
-      tb: null,
       winner: null,
       second: null,
       decks: { main: {}, tiebreak: {} },
@@ -103,8 +102,6 @@
 
   Engine.prototype._draw = function (pool) {
     var list = this.bank[pool];
-    // no dedicated tie-break questions: reuse the normal ones
-    if (pool === 'tiebreak' && !list.length) list = this.bank.main;
     var n = list.length;
     if (!n) return null;
     var d = this.s.decks[pool];
@@ -118,7 +115,8 @@
 
   Engine.prototype._endTurn = function () {
     var s = this.s;
-    s.current = (s.current + 1) % s.teams.length;
+    do { s.current = (s.current + 1) % s.teams.length; }
+    while (s.winner != null && s.teams[s.current].id === s.winner);
     s.rerolled = false;
     s.chain = 0;
     s.tile = null;
@@ -128,22 +126,26 @@
     this._log('log_turn', { name: this.team().name });
   };
 
-  /** Returns true if the team has reached Finish (and starts the tie-break). */
+  /**
+   * Returns true if the team has reached Finish. The first team home takes 1st
+   * and the game goes on without it; the second team home takes 2nd and ends
+   * the game (everyone else shares 3rd).
+   */
   Engine.prototype._checkFinish = function (team) {
     if (team.pos < this.finish) return false;
     var s = this.s;
-    s.winner = team.id;
     s.tile = null;
     s.options = [];
     s.question = null;
-    this._log('log_win', { name: team.name });
-    var n = s.teams.length, start = s.teams.indexOf(team), queue = [];
-    for (var k = 1; k < n; k++) queue.push(s.teams[(start + k) % n].id);
-    s.tb = { queue: queue, idx: 0 };
-    var q = this._draw('tiebreak');
-    if (!q) { this._finishTiebreak(null); return true; }
-    s.question = q;
-    s.phase = 'tiebreak';
+    if (s.winner == null) {
+      s.winner = team.id;
+      this._log('log_win', { name: team.name });
+      if (s.teams.length > 1) { this._endTurn(); return true; }
+    } else {
+      s.second = team.id;
+      this._log('log_second', { name: team.name });
+    }
+    s.phase = 'results';
     return true;
   };
 
@@ -174,23 +176,6 @@
       return;
     }
     this._endTurn();
-  };
-
-  Engine.prototype._finishTiebreak = function (secondId) {
-    var s = this.s, self = this;
-    if (secondId == null) {
-      // nobody answered correctly: furthest along the board takes 2nd place
-      var best = null;
-      s.tb.queue.forEach(function (id) {
-        var t = self.teamById(id);
-        if (!best || t.pos > best.pos) best = t;
-      });
-      secondId = best ? best.id : null;
-    }
-    s.second = secondId;
-    s.question = null;
-    s.phase = 'results';
-    if (secondId != null) this._log('log_second', { name: this.teamById(secondId).name });
   };
 
   /* ---------- actions ---------- */
@@ -269,7 +254,6 @@
   /** Resolve the current question: correct = stay, wrong (or timeout) = back 1. */
   Engine.prototype.answer = function (correct) {
     var s = this.s;
-    if (s.phase === 'tiebreak') return this._tiebreakAnswer(correct);
     if (s.phase !== 'question') return;
     var team = this.team();
     if (correct) {
@@ -292,27 +276,6 @@
   };
 
   Engine.prototype.timeout = function () { this.answer(false); };
-
-  Engine.prototype._tiebreakAnswer = function (correct) {
-    var s = this.s, tb = s.tb;
-    var team = this.teamById(tb.queue[tb.idx]);
-    if (correct) {
-      this._log('log_tb_correct', { name: team.name });
-      this._finishTiebreak(team.id);
-      return;
-    }
-    this._log('log_tb_wrong', { name: team.name });
-    tb.idx++;
-    if (tb.idx >= tb.queue.length) { this._finishTiebreak(null); return; }
-    var q = this._draw('tiebreak');
-    if (!q) { this._finishTiebreak(null); return; }
-    s.question = q;
-  };
-
-  Engine.prototype.tiebreakTeam = function () {
-    var tb = this.s.tb;
-    return tb ? this.teamById(tb.queue[tb.idx]) : null;
-  };
 
   Engine.TILE_TYPES = TILE_TYPES;
   Engine.EFFECTS = EFFECTS;
