@@ -74,12 +74,24 @@ test('jump3 landing on another function tile chains into it', () => {
   assert.strictEqual(e.s.current, 0);
 });
 
-test('chain stops (turn ends) when landing on a question tile', () => {
+test('function tile landing on a question tile asks that question', () => {
   const e = make();
-  e.roll(7); e.resolveTile();               // tile 7 back1 -> 6 (question): no question asked
+  e.roll(7); e.resolveTile();               // tile 7 back1 -> 6 (question)
   assert.strictEqual(pos(e, 0), 6);
-  assert.strictEqual(e.s.phase, 'awaitRoll');
+  assert.strictEqual(e.s.phase, 'awaitTile');
+  e.resolveTile();
+  assert.strictEqual(e.s.phase, 'question');
+  e.answer(true);                           // correct: stay on 6
+  assert.strictEqual(pos(e, 0), 6);
   assert.strictEqual(e.s.current, 1);
+});
+
+test('wrong answer on a chained question moves back 1 and does not ask again', () => {
+  const e = make();
+  e.roll(7); e.resolveTile(); e.resolveTile(); // now answering tile 6
+  e.answer(false);                          // 6 -> 5 (jump3 function tile triggers)
+  assert.strictEqual(pos(e, 0), 5);
+  assert.strictEqual(e.s.phase, 'awaitTile');
 });
 
 test('wrong answer landing on a function tile triggers it', () => {
@@ -126,6 +138,8 @@ test('choose5 offers next five tiles only', () => {
   assert.strictEqual(e.chooseTile(20), false);
   e.chooseTile(17);
   assert.strictEqual(pos(e, 0), 17);
+  assert.strictEqual(e.s.phase, 'awaitTile'); // 17 is a question tile: must be answered
+  e.resolveTile(); e.answer(true);
   assert.strictEqual(e.s.current, 1);
 });
 
@@ -142,6 +156,15 @@ test('reaching or passing Finish wins, then tie-break decides 2nd', () => {
   e.answer(true);                           // C correct
   assert.strictEqual(e.s.phase, 'results');
   assert.strictEqual(e.s.second, 2);
+});
+
+test('empty tie-break pool reuses the normal questions', () => {
+  const e = make();
+  e.setBank({ tiebreak: [] });
+  e.s.teams[0].pos = 23; e.s.teams[1].pos = 5; e.s.teams[2].pos = 9;
+  e.roll(6);
+  assert.strictEqual(e.s.phase, 'tiebreak');
+  assert.ok(cfg.questions.some(q => JSON.stringify(q) === JSON.stringify(e.s.question)));
 });
 
 test('tie-break with no correct answer: furthest team gets 2nd', () => {

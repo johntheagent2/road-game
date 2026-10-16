@@ -185,7 +185,7 @@
     el('rect', { x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 12, class: 'sign-edge' }, g);
     el('rect', { x: cx - w / 2 + 4, y: cy - h / 2 + 4, width: w - 8, height: h - 8, rx: 8.5, class: 'sign-face' }, g);
     var title = el('text', { x: cx, y: cy + 15, class: 'title-text', 'text-anchor': 'middle' }, g);
-    title.textContent = 'Fairfield Road';
+    title.textContent = "Let's rock the road";
     [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (d) {
       el('circle', { cx: cx + d[0] * (w / 2 - 14), cy: cy + d[1] * (h / 2 - 14), r: 2.6, class: 'bolt' }, g);
     });

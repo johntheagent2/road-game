@@ -4,7 +4,7 @@
 
   var D = {
     vi: {
-      app_title: 'Fairfield Road',
+      app_title: "Let's rock the road",
       btn_questions: 'Câu hỏi & ô', btn_newgame: 'Ván mới', btn_fullscreen: 'Toàn màn hình',
       setup_title: 'Thiết lập đội chơi', setup_hint: 'Từ 2 đến 6 đội. Mỗi đội chọn tên, màu và nhân vật.',
       team_name: 'Tên đội', add_team: '+ Thêm đội', remove: 'Xóa',
@@ -31,7 +31,7 @@
       correct_hint: 'Đúng: giữ nguyên vị trí.', wrong_hint: 'Sai: lùi lại 1 ô.',
       time_left: 'Còn {n}s', time_up: 'Hết giờ!', no_questions: '(chưa có câu hỏi nào)',
       results_title: 'Kết quả', first_place: 'Hạng 1', second_place: 'Hạng 2', others: 'Còn lại',
-      play_again: 'Chơi lại', close: 'Đóng',
+      play_again: 'Chơi lại', close: 'Đóng', rank_finished: 'Về đích', btn_sound: 'Âm thanh',
       log_start: 'Bắt đầu ván chơi. {name} đi trước.',
       log_turn: 'Đến lượt {name}.',
       log_roll: '{name} tung được {n}.',
@@ -42,7 +42,7 @@
       log_rerollcap: '{name} đã được tung thêm 1 lần rồi — hết lượt.',
       log_jump3: '{name} bật nhảy 3 ô.',
       log_back: '{name} lùi {n} ô.',
-      log_chain: '{name} rơi vào ô chức năng khác: {tile}!',
+      log_chain: '{name} rơi vào ô: {tile}!',
       log_choose: '{name} được chọn 1 trong 5 ô tiếp theo.',
       log_chosen: '{name} chọn đi tới ô {n}.',
       log_win: '{name} về đích đầu tiên và giành hạng 1!',
@@ -66,7 +66,7 @@
       confirm_newgame: 'Bắt đầu ván mới? Ván hiện tại sẽ bị bỏ.'
     },
     en: {
-      app_title: 'Fairfield Road',
+      app_title: "Let's rock the road",
       btn_questions: 'Questions & tiles', btn_newgame: 'New game', btn_fullscreen: 'Fullscreen',
       setup_title: 'Team setup', setup_hint: '2 to 6 teams. Pick a name, colour and farmer for each.',
       team_name: 'Team name', add_team: '+ Add team', remove: 'Remove',
@@ -93,7 +93,7 @@
       correct_hint: 'Correct: stay where you are.', wrong_hint: 'Wrong: move back 1 tile.',
       time_left: '{n}s left', time_up: "Time's up!", no_questions: '(no questions yet)',
       results_title: 'Results', first_place: '1st place', second_place: '2nd place', others: 'Others',
-      play_again: 'Play again', close: 'Close',
+      play_again: 'Play again', close: 'Close', rank_finished: 'Finished', btn_sound: 'Sound',
       log_start: 'Game started. {name} goes first.',
       log_turn: "{name}'s turn.",
       log_roll: '{name} rolled a {n}.',
@@ -104,7 +104,7 @@
       log_rerollcap: '{name} already had the extra roll — turn over.',
       log_jump3: '{name} jumps forward 3 tiles.',
       log_back: '{name} moves back {n}.',
-      log_chain: '{name} lands on another function tile: {tile}!',
+      log_chain: '{name} lands on: {tile}!',
       log_choose: '{name} may pick 1 of the next 5 tiles.',
       log_chosen: '{name} chose tile {n}.',
       log_win: '{name} reached the finish first and wins!',

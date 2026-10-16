@@ -102,7 +102,10 @@
   };
 
   Engine.prototype._draw = function (pool) {
-    var list = this.bank[pool], n = list.length;
+    var list = this.bank[pool];
+    // no dedicated tie-break questions: reuse the normal ones
+    if (pool === 'tiebreak' && !list.length) list = this.bank.main;
+    var n = list.length;
     if (!n) return null;
     var d = this.s.decks[pool];
     if (!d.order || d.order.length !== n || d.ptr >= n) {
@@ -149,9 +152,18 @@
    * if it landed on a function tile that tile triggers too (chain); landing on
    * a question/start tile ends the turn.
    */
-  Engine.prototype._afterMove = function (team) {
+  Engine.prototype._afterMove = function (team, askQuestion) {
     if (this._checkFinish(team)) return;
     var s = this.s, type = this.tiles[team.pos];
+    if (askQuestion && type === 'question') {
+      // moved here by a function tile: the question must be answered too
+      s.tile = team.pos;
+      s.options = [];
+      s.question = null;
+      s.phase = 'awaitTile';
+      this._log('log_chain', { name: team.name, tile: type });
+      return;
+    }
     if (EFFECTS.indexOf(type) >= 0 && s.chain < MAX_CHAIN) {
       s.chain++;
       s.tile = team.pos;
@@ -240,7 +252,7 @@
       default:
         break;
     }
-    this._afterMove(team); // moves chain onto the next function tile
+    this._afterMove(team, true); // moves chain onto the next function / question tile
   };
 
   /** "Pick 1 of the next 5". */
@@ -250,7 +262,7 @@
     var team = this.team();
     this._log('log_chosen', { name: team.name, n: n });
     this._moveTo(team, n, 'step');
-    this._afterMove(team);
+    this._afterMove(team, true);
     return true;
   };
 

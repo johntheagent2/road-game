@@ -1,4 +1,4 @@
-# Fairfield Road
+# Let's rock the road
 
 A road-trip board game for 2–6 teams, played on one shared screen (a projector works well).
 Plain HTML/CSS/JS: no build step, no dependencies, works offline.

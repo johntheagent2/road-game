@@ -3,7 +3,6 @@
   'use strict';
 
   var I = root.I18N, t = I.t, Engine = root.FFEngine, Store = root.Store, cfg = root.GAME_CONFIG;
-  var FACES = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
   var ICONS = ['🧑‍🌾', '👨‍🌾', '👩‍🌾', '👨🏽‍🌾', '👩🏻‍🌾', '🧑🏾‍🌾', '👨🏻‍🌾', '👩🏿‍🌾'];
   var COLORS = ['#ef4444', '#3b82f6', '#16a34a', '#f59e0b', '#a855f7', '#0891b2'];
   var MIN_TEAMS = 2, MAX_TEAMS = 6;
@@ -16,6 +15,41 @@
     });
   }
   function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+  /* ---------- sound ---------- */
+
+  var Sound = (function () {
+    var dir = 'assets/sounds/', muted = false, bgWanted = false;
+    try { muted = localStorage.getItem('fairfield.muted') === '1'; } catch (e) { /* ignore */ }
+    function make(file, loop) { var a = new Audio(dir + file); a.loop = !!loop; a.preload = 'auto'; return a; }
+    var bg = make('background-music.mp3', true); bg.volume = 0.3;
+    var fx = {
+      right: make('right-answer.mp3'), wrong: make('wrong-answer.mp3'),
+      finish: make('first-place-finish-line.mp3'), board: make('score-board.mp3')
+    };
+    function safe(a) { try { var p = a.play(); if (p && p.catch) p.catch(function () { /* blocked until a click */ }); } catch (e) { /* ignore */ } }
+    function stopFx() { Object.keys(fx).forEach(function (k) { fx[k].pause(); fx[k].currentTime = 0; }); }
+    function syncBtn() {
+      var b = $('btn-sound'); if (!b) return;
+      b.textContent = muted ? '🔇' : '🔊'; b.classList.toggle('muted', muted);
+    }
+    return {
+      play: function (name) { if (muted) return; stopFx(); safe(fx[name]); },
+      startMusic: function () { bgWanted = true; if (!muted) safe(bg); },
+      stopAll: function () { bgWanted = false; bg.pause(); stopFx(); },
+      /** scoreboard: silence everything, then only the scoreboard track */
+      scoreboard: function () { bgWanted = false; bg.pause(); stopFx(); if (!muted) safe(fx.board); },
+      toggle: function () {
+        muted = !muted;
+        try { localStorage.setItem('fairfield.muted', muted ? '1' : '0'); } catch (e) { /* ignore */ }
+        if (muted) { bg.pause(); stopFx(); } else if (bgWanted) safe(bg);
+        syncBtn();
+      },
+      syncBtn: syncBtn
+    };
+  })();
+
+  function setDice(v) { $('dice').setAttribute('data-v', v); }
 
   /* ---------- content (defaults, overridden by saved edits) ---------- */
 
@@ -115,6 +149,7 @@ layout = layout.map(function (x) { return Engine.TILE_TYPES.indexOf(x) >= 0 ? x 
     engine.start(setup.teams.map(function (tm, i) { return { id: i, name: tm.name, color: tm.color, icon: tm.icon }; }),
       { timerEnabled: setup.timerEnabled, timerSeconds: setup.seconds }, setup.shuffle);
     shownKey = null; boardBuilt = false;
+    Sound.startMusic();
     render();
   };
 
@@ -129,7 +164,9 @@ layout = layout.map(function (x) { return Engine.TILE_TYPES.indexOf(x) >= 0 ? x 
     if (busy) return;
     busy = true;
     try {
+      var hadWinner = engine.s.winner != null;
       fn();
+      if (!hadWinner && engine.s.winner != null) Sound.play('finish');
       await board.play(engine.takeAnim());
     } finally { busy = false; }
     render();
@@ -140,11 +177,15 @@ layout = layout.map(function (x) { return Engine.TILE_TYPES.indexOf(x) >= 0 ? x 
     busy = true;
     $('btn-roll').disabled = true;
     var dice = $('dice');
+    dice.classList.remove('settle');
     dice.classList.add('rolling');
-    for (var i = 0; i < 8; i++) { dice.textContent = FACES[Math.floor(Math.random() * 6)]; await wait(90); }
+    for (var i = 0; i < 14; i++) { setDice(1 + Math.floor(Math.random() * 6)); await wait(90); }
     dice.classList.remove('rolling');
     var v = engine.roll();
-    dice.textContent = FACES[v - 1];
+    setDice(v);
+    dice.classList.add('settle');
+    if (engine.s.winner != null) Sound.play('finish');
+    await wait(350);
     try { await board.play(engine.takeAnim()); } finally { busy = false; }
     render();
   }
@@ -186,7 +227,7 @@ layout = layout.map(function (x) { return Engine.TILE_TYPES.indexOf(x) >= 0 ? x 
     $('turn-banner').innerHTML = '<span class="chip" style="background:' + esc(cur.color) + '">' + esc(cur.icon) + '</span>' + esc(cur.name);
 
     // dice + hint
-    if (s.lastRoll) $('dice').textContent = FACES[s.lastRoll - 1];
+    if (s.lastRoll) setDice(s.lastRoll);
     $('btn-roll').disabled = busy || s.phase !== 'awaitRoll';
     var hints = { awaitRoll: 'hint_roll', awaitTile: 'hint_tile', choose: 'hint_choose', question: 'hint_question', tiebreak: 'hint_tiebreak', results: 'hint_results' };
     $('hint').textContent = t(hints[s.phase] || 'hint_roll');
@@ -257,12 +298,14 @@ layout = layout.map(function (x) { return Engine.TILE_TYPES.indexOf(x) >= 0 ? x 
       closeGameModal();
       act(function () { engine.answer(correct); });
     }
+    function judged(correct) { Sound.play(correct ? 'right' : 'wrong'); submit(correct); }
 
     if (q.choices) {
       [].forEach.call(body.querySelectorAll('[data-c]'), function (b) {
         b.onclick = function () {
           stopTimer();
           var pick = +b.getAttribute('data-c'), ok = pick === q.answer;
+          Sound.play(ok ? 'right' : 'wrong');
           [].forEach.call(body.querySelectorAll('[data-c]'), function (x) {
             x.disabled = true;
             if (+x.getAttribute('data-c') === q.answer) x.classList.add('right');
@@ -275,8 +318,8 @@ layout = layout.map(function (x) { return Engine.TILE_TYPES.indexOf(x) >= 0 ? x 
       $('btn-reveal').onclick = function () {
         $('ans').classList.remove('hidden'); $('act-reveal').classList.add('hidden'); $('act-judge').classList.remove('hidden');
       };
-      $('btn-correct').onclick = function () { submit(true); };
-      $('btn-wrong').onclick = function () { submit(false); };
+      $('btn-correct').onclick = function () { judged(true); };
+      $('btn-wrong').onclick = function () { judged(false); };
     }
 
     stopTimer();
@@ -293,6 +336,7 @@ layout = layout.map(function (x) { return Engine.TILE_TYPES.indexOf(x) >= 0 ? x 
         if (left > 0) { tick(); return; }
         stopTimer();
         label.textContent = t('time_up'); bar.firstChild.style.width = '0%';
+        Sound.play('wrong');
         [].forEach.call(body.querySelectorAll('button'), function (x) { x.disabled = true; });
         wait(1200).then(function () { closeGameModal(); act(function () { engine.timeout(); }); });
       }, 1000);
@@ -302,15 +346,23 @@ layout = layout.map(function (x) { return Engine.TILE_TYPES.indexOf(x) >= 0 ? x 
   /* ---------- results ---------- */
 
   function resultsModal() {
-    var s = engine.s, win = engine.teamById(s.winner), sec = s.second != null ? engine.teamById(s.second) : null;
-    var body = $('modal-body');
-    body.className = 'modal-body';
-    function chip(tm) { return '<span class="chip" style="background:' + esc(tm.color) + '">' + esc(tm.icon) + '</span>'; }
-    var h = '<h2>🏆 ' + esc(t('results_title')) + '</h2><div class="podium">' +
-      '<div class="place">🥇 ' + chip(win) + '<strong>' + esc(win.name) + '</strong><span class="muted">' + esc(t('first_place')) + '</span></div>';
-    if (sec) h += '<div class="place second">🥈 ' + chip(sec) + '<strong>' + esc(sec.name) + '</strong><span class="muted">' + esc(t('second_place')) + '</span></div>';
-    s.teams.filter(function (tm) { return tm.id !== s.winner && tm.id !== s.second; }).forEach(function (tm) {
-      h += '<div class="place rest">' + chip(tm) + esc(tm.name) + '<span class="muted">' + esc(t('others')) + '</span></div>';
+    var s = engine.s, body = $('modal-body');
+    body.className = 'modal-body rank';
+    var ranked = [engine.teamById(s.winner)];
+    if (s.second != null) ranked.push(engine.teamById(s.second));
+    ranked = ranked.concat(s.teams.filter(function (tm) { return tm.id !== s.winner && tm.id !== s.second; })
+      .sort(function (x, y) { return y.pos - x.pos; }));
+    // podium order: 2nd | 1st | 3rd | 4th ...
+    var order = ranked.map(function (tm, i) { return { tm: tm, rank: i + 1 }; });
+    if (order.length >= 2) order.splice(1, 0, order.shift());
+    var cls = ['', 'first', 'second', 'third'];
+    var h = '<div class="rank-title"><h2>' + esc(t('results_title')) + '</h2></div><div class="rank-cards">';
+    order.forEach(function (o, k) {
+      var tm = o.tm, where = tm.pos >= engine.finish ? t('rank_finished') : t('tile_n', { n: tm.pos });
+      h += '<div class="rank-card ' + (cls[o.rank] || '') + '" style="animation-delay:' + (0.12 * k) + 's">' +
+        '<div class="art" data-rank="' + o.rank + '" style="background:linear-gradient(160deg,' + esc(tm.color) + ',' + esc(tm.color) + 'aa)">' +
+        '<span>' + esc(tm.icon) + '</span></div>' +
+        '<div class="info"><strong>' + esc(tm.name) + '</strong><span>' + esc(where) + '</span></div></div>';
     });
     h += '</div><div class="actions"><button id="res-close">' + esc(t('close')) + '</button>' +
       '<button id="res-again" class="primary big">' + esc(t('play_again')) + '</button></div>';
@@ -318,10 +370,12 @@ layout = layout.map(function (x) { return Engine.TILE_TYPES.indexOf(x) >= 0 ? x 
     $('modal').classList.remove('hidden');
     $('res-close').onclick = function () { $('modal').classList.add('hidden'); };
     $('res-again').onclick = toSetup;
+    Sound.scoreboard();
   }
 
   function toSetup() {
     stopTimer();
+    Sound.stopAll();
     engine.setState({ phase: 'setup' });
     Store.clearGame();
     shownKey = null; boardBuilt = false;
@@ -336,6 +390,8 @@ layout = layout.map(function (x) { return Engine.TILE_TYPES.indexOf(x) >= 0 ? x 
     if (p !== 'setup' && p !== 'results' && !confirm(t('confirm_newgame'))) return;
     toSetup();
   };
+
+  $('btn-sound').onclick = function () { Sound.toggle(); };
 
   $('btn-fullscreen').onclick = function () {
     try {
@@ -384,6 +440,10 @@ layout = layout.map(function (x) { return Engine.TILE_TYPES.indexOf(x) >= 0 ? x 
   if (saved && saved.state && saved.state.phase && saved.state.phase !== 'setup' && saved.state.teams) {
     engine.setState(saved.state);
     toast(t('resume_hint'));
+    if (saved.state.phase !== 'results') {
+      document.addEventListener('click', function once() { document.removeEventListener('click', once); Sound.startMusic(); });
+    }
   }
+  Sound.syncBtn();
   setLang(Store.loadLang() || 'vi');
 })(window);

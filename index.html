@@ -3,22 +3,19 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Fairfield Road</title>
+  <title>Let's rock the road</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
   <header class="topbar">
     <h1>
-      <svg class="shield" viewBox="0 0 34 38" aria-hidden="true">
-        <path d="M17 1.5 L31.5 6 C31.5 22 26 31 17 36.5 C8 31 2.5 22 2.5 6 Z" fill="#fff" stroke="#15181a" stroke-width="2" stroke-linejoin="round"/>
-        <path d="M17 5.5 L27.5 8.8 C27.5 21 23.5 28 17 32.5 C10.5 28 6.5 21 6.5 8.8 Z" fill="#ffc20e" stroke="#15181a" stroke-width="1.6" stroke-linejoin="round"/>
-        <text x="17" y="24" text-anchor="middle" font-family="Overpass, sans-serif" font-weight="800" font-size="15" fill="#15181a">FR</text>
-      </svg>
-      Fairfield Road
+      <img class="logo" src="assets/img/game-logo.png" alt="Destination by Fairfield - Heritage Week">
+      <span>Let's rock the road</span>
     </h1>
     <div class="spacer"></div>
     <button id="btn-questions" class="ghost" data-i18n="btn_questions"></button>
     <button id="btn-newgame" class="ghost" data-i18n="btn_newgame"></button>
+    <button id="btn-sound" class="ghost" aria-label="Sound" title="Sound">🔊</button>
     <button id="btn-fullscreen" class="ghost" data-i18n="btn_fullscreen"></button>
     <div class="lang" role="group" aria-label="Language">
       <button id="lang-vi" data-lang="vi">VI</button><button id="lang-en" data-lang="en">EN</button>
@@ -52,7 +49,7 @@
           <div class="muted small" data-i18n="turn_of"></div>
           <div id="turn-banner" class="turn-banner"></div>
           <div class="dice-row">
-            <div id="dice" class="dice" aria-live="polite">⚀</div>
+            <div class="dice-stage"><div id="dice" class="dice" data-v="1" aria-live="polite"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
             <button id="btn-roll" class="primary big" data-i18n="roll"></button>
           </div>
           <p id="hint" class="hint"></p>
